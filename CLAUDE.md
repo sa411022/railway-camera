@@ -11,12 +11,12 @@
 - 「啟用」某支監視器 = 拿掉該行開頭的 `// `；「停用」= 在行首加上 `// `。
   同名的監視器可能有好幾支（例如「談文=大山」有兩支），使用者會用「第幾支」指定，依檔案中出現的順序計算。
 - **「啟用預設的監視器」= 只啟用下列八支，其餘全部停用**（同名的有好幾支，請以網址辨認）：
-  1. 成功(追分)=彰化 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=269&t=`
-  2. 大甲=台中港 — `https://cctv-ss03.thb.gov.tw/T1-156K+650?resolution=CIF_352X288&t=`
-  3. 通霄=苑裡 — `https://cctv-ss04.thb.gov.tw/T1-139K+850?resolution=CIF_352X288&t=`
-  4. 談文=大山 — `https://cctv-ss08.thb.gov.tw/T61-097K+100?t=`（第一支）
-  5. 談文=大山 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=582&t=`（第二支）
-  6. 竹南=談文(造橋) — `https://cctv-ss03.thb.gov.tw/T1F-003K+650?resolution=CIF_352X288&t=`
+  1. 成功(追分)=彰化 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=269`
+  2. 大甲=台中港 — `https://cctv-ss03.thb.gov.tw/T1-156K+650?resolution=CIF_352X288`
+  3. 通霄=苑裡 — `https://cctv-ss04.thb.gov.tw/T1-139K+850?resolution=CIF_352X288`
+  4. 談文=大山 — `https://cctv-ss08.thb.gov.tw/T61-097K+100`（第一支）
+  5. 談文=大山 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=582`（第二支）
+  6. 竹南=談文(造橋) — `https://cctv-ss03.thb.gov.tw/T1F-003K+650?resolution=CIF_352X288`
   7. 桃園=內壢 — `https://cctvtraffic.tycg.gov.tw/hls/nvr2/camera067/live.m3u8`（HLS 那支）
   8. 南樹林=樹林 — `https://cctvatis5.ntpc.gov.tw/hls/C000217/live.m3u8`
 - 名稱找不到完全相符時（例如名稱前後顛倒），先找最可能的那支並在回覆中說明，不要自行改名。
@@ -33,13 +33,13 @@
 
 ```jsonc
 [
-  { "name": "成功(追分)=彰化", "url": "https://.../bmjpg?camera=269&t=", "type": "img" },
+  { "name": "成功(追分)=彰化", "url": "https://.../bmjpg?camera=269", "type": "img" },
   // { "name": "桃園=內壢", "url": "https://.../live.m3u8", "type": "hls" },
 ]
 ```
 
 - 允許 `//`、`/* */` 註解、結尾逗號、未加引號的 key、單引號字串（由 `index.html` 的 `parseLooseJson()` 解析）。
-- `type`：`"img"` 用 `<img>` 播放，每 6 秒把網址中的 `t=` 設為目前 timestamp 重新連線；
+- `type`：`"img"` 用 `<img>` 播放，每 6 秒在網址加上 `t=目前 timestamp` 重新連線（設定檔不用寫 `t=`，有寫也會被取代）；
   `"hls"` 用 `<video>` + hls.js 播放。沒寫 `type` 時，網址是 `.m3u8` 就當 hls，其餘當 img。
 - 只播放前 8 支未註解的監視器（`index.html` 的 `MAX_CAMS`）。
 
