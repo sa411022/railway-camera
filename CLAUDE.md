@@ -10,6 +10,13 @@
 - 修改 `camera.jsonc` 時，**只動被要求的那幾行**，其他行（包含註解掉的監視器、順序、名稱）保持原樣。
 - 「啟用」某支監視器 = 拿掉該行開頭的 `// `；「停用」= 在行首加上 `// `。
   同名的監視器可能有好幾支（例如「談文=大山」有兩支），使用者會用「第幾支」指定，依檔案中出現的順序計算。
+- **「啟用預設的監視器」= 只啟用下列六支，其餘全部停用**（同名的有好幾支，請以網址辨認）：
+  1. 成功(追分)=彰化 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=269&t=`
+  2. 通霄=苑裡 — `https://cctv-ss04.thb.gov.tw/T1-139K+850?resolution=CIF_352X288&t=`
+  3. 談文=大山 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=582&t=`（第二支）
+  4. 竹南=談文(造橋) — `https://cctv-ss03.thb.gov.tw/T1F-003K+650?resolution=CIF_352X288&t=`
+  5. 桃園=內壢 — `https://cctvtraffic.tycg.gov.tw/hls/nvr2/camera067/live.m3u8`（HLS 那支）
+  6. 南樹林=樹林 — `https://cctvatis5.ntpc.gov.tw/hls/C000217/live.m3u8`
 - 名稱找不到完全相符時（例如名稱前後顛倒），先找最可能的那支並在回覆中說明，不要自行改名。
 - 密集 push 時 Pages 部署會排隊，部署由 `.github/workflows/pages.yml` 負責（進行中的部署不會被取消）。
 
