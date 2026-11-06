@@ -27,6 +27,7 @@
   { "name": "談文=大山", "url": "https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=582", "type": "img" },
   { "name": "竹南=談文(造橋)", "url": "https://cctv-ss03.thb.gov.tw/T1F-003K+650?resolution=CIF_352X288", "type": "img" },
   // { "name": "竹南=崎頂", "url": "https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=245", "type": "img" },
+  // { "name": "新竹=三姓橋", "url": "https://nvr1.hccg.gov.tw/thi-vms/cgi-bin/zms?scale=50&mode=jpeg&maxfps=5&monitor=80&user=viewer&pass=--", "type": "img" },
   // { "name": "榮華=上員", "url": "https://cctv-ss08.thb.gov.tw/T68-15K+480", "type": "img" },
   // { "name": "竹北=北新竹", "url": "https://cctv-ss08.thb.gov.tw/T68-7K+240", "type": "img" },
   // { "name": "埔心=平鎮", "url": "https://cctvtraffic.tycg.gov.tw/hls/nvr3/camera135/live.m3u8", "type": "hls" },
