@@ -117,7 +117,7 @@
   const CONFIG_URL = 'camera.json';
   const MAX_CAMS = 6;
   const IMG_REFRESH_MS = 6000;      // <img> 串流每 6 秒重新連線
-  const CONFIG_POLL_MS = 60000;     // 每分鐘檢查 camera.json 是否有變動
+  const CONFIG_POLL_MS = 6000;      // 每 6 秒重新讀取 camera.json
   const HLS_STALL_MS = 20000;       // HLS 畫面停住超過 20 秒就重建
   const CONTENT_ASPECT = 4 / 3;     // 用來估算最佳排版的畫面比例
 
@@ -263,11 +263,24 @@
     };
   }
 
+  // 依設定建立監視器；網址沒變的監視器會沿用，不中斷播放
   function buildCams(list) {
-    cams.forEach(c => c.destroy && c.destroy());
-    stage.innerHTML = '';
+    const pool = new Map();
+    cams.forEach(c => {
+      if (!pool.has(c.url)) pool.set(c.url, []);
+      pool.get(c.url).push(c);
+    });
 
     cams = list.slice(0, MAX_CAMS).map(item => {
+      const name = String(item.name ?? '');
+      const url = String(item.url ?? '');
+
+      const reused = pool.get(url)?.shift();
+      if (reused) {
+        reused.name = name;
+        return reused;
+      }
+
       const el = document.createElement('div');
       el.className = 'cell';
       const msgEl = document.createElement('div');
@@ -275,11 +288,17 @@
       el.appendChild(msgEl);
       stage.appendChild(el);
 
-      const cam = { name: String(item.name ?? ''), url: String(item.url ?? ''), el, msgEl, statusEls: [] };
+      const cam = { name, url, el, msgEl, statusEls: [] };
       setState(cam, 'wait', '連線中…');
-      isHls(cam.url) ? createHlsCam(cam) : createImgCam(cam);
+      isHls(url) ? createHlsCam(cam) : createImgCam(cam);
       return cam;
     });
+
+    // 移除設定檔中已不存在的監視器
+    pool.forEach(left => left.forEach(c => {
+      c.destroy && c.destroy();
+      c.el.remove();
+    }));
 
     layout();
   }
