@@ -1,0 +1,8 @@
+[
+  { "name": "大甲=台中港", "url": "https://cctv-ss03.thb.gov.tw/T1-156K+650?resolution=CIF_352X288&t=" },
+  { "name": "通霄=苑裡", "url": "https://cctv-ss04.thb.gov.tw/T1-139K+850?resolution=CIF_352X288&t=" },
+  { "name": "談文=大山", "url": "https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=582&t=" },
+  { "name": "竹南=談文(造橋)", "url": "https://cctv-ss03.thb.gov.tw/T1F-003K+650?resolution=CIF_352X288&t=" },
+  { "name": "桃園=內壢", "url": "https://cctvtraffic.tycg.gov.tw/hls/nvr2/camera067/live.m3u8"},
+  { "name": "南樹林=樹林", "url": "https://cctvatis5.ntpc.gov.tw/hls/C000217/live.m3u8"}
+]

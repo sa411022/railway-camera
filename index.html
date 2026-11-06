@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07090d">
+  <title>即時監視器</title>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.13/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+  <style>
+    :root {
+      --bg: #07090d;
+      --cell: #0e131a;
+      --bar: #10161f;
+      --line: #1f2a37;
+      --name: #f3f5f8;
+      --clock: #5eead4;
+      --muted: #64748b;
+      --ok: #22c55e;
+      --wait: #f59e0b;
+      --err: #ef4444;
+      --bar-h: 28px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--name);
+      overflow: hidden;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #stage { position: fixed; inset: 0; }
+
+    .cell {
+      position: absolute;
+      background: var(--cell);
+      overflow: hidden;
+      outline: 1px solid var(--bg);
+    }
+    .cell img, .cell video {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #000;
+    }
+    .cell .msg {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+      font-size: 14px; letter-spacing: .1em;
+      pointer-events: none;
+    }
+    .cell[data-state="ok"] .msg { display: none; }
+    .cell[data-state="err"] img { visibility: hidden; }
+
+    .bar {
+      position: absolute;
+      height: var(--bar-h);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .75em;
+      padding: 0 .8em;
+      background: var(--bar);
+      border-color: var(--line);
+      border-style: solid;
+      border-width: 0;
+      font-size: calc(var(--bar-h) * .52);
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .bar.top    { border-bottom-width: 1px; }
+    .bar.bottom { border-top-width: 1px; }
+
+    .name {
+      display: inline-flex; align-items: center; gap: .45em;
+      min-width: 0;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .name span { overflow: hidden; text-overflow: ellipsis; }
+    .dot {
+      flex: none;
+      width: .5em; height: .5em; border-radius: 50%;
+      background: var(--wait);
+      box-shadow: 0 0 .5em currentColor;
+      color: var(--wait);
+    }
+    .dot[data-state="ok"]  { background: var(--ok);  color: var(--ok); }
+    .dot[data-state="err"] { background: var(--err); color: var(--err); }
+
+    .clock {
+      flex: none;
+      color: var(--clock);
+      font-family: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+
+    #notice {
+      position: fixed; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      padding: 16px; text-align: center;
+      color: var(--muted); font-size: 16px; line-height: 1.7;
+    }
+    #notice.show { display: flex; }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="notice"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const CONFIG_URL = 'camera.json';
+  const MAX_CAMS = 6;
+  const IMG_REFRESH_MS = 6000;      // <img> 串流每 6 秒重新連線
+  const CONFIG_POLL_MS = 60000;     // 每分鐘檢查 camera.json 是否有變動
+  const HLS_STALL_MS = 20000;       // HLS 畫面停住超過 20 秒就重建
+  const CONTENT_ASPECT = 4 / 3;     // 用來估算最佳排版的畫面比例
+
+  const stage = document.getElementById('stage');
+  const notice = document.getElementById('notice');
+
+  let cams = [];          // { name, url, el, statusEls[], destroy() }
+  let configText = '';
+  let shortClock = false;
+
+  /* ---------------- 工具 ---------------- */
+
+  const isHls = (url) => /\.m3u8(\?|#|$)/i.test(url);
+
+  // 設定/覆寫 t=timestamp 參數
+  function withTimestamp(url) {
+    const ts = Date.now();
+    if (/([?&])t=[^&#]*/.test(url)) return url.replace(/([?&])t=[^&#]*/, `$1t=${ts}`);
+    return url + (url.includes('?') ? '&' : '?') + `t=${ts}`;
+  }
+
+  function clockText() {
+    const fmt = shortClock ? 'HH:mm:ss' : 'YYYY/MM/DD HH:mm:ss';
+    if (window.dayjs) return dayjs().format(fmt);
+    // dayjs 載入失敗時的備援
+    const d = new Date(), p = (v) => String(v).padStart(2, '0');
+    const time = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    return shortClock ? time : `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${time}`;
+  }
+
+  function showNotice(text) {
+    notice.textContent = text;
+    notice.classList.toggle('show', !!text);
+  }
+
+  /* ---------------- 監視器 ---------------- */
+
+  function setState(cam, state, msg) {
+    cam.el.dataset.state = state;
+    cam.msgEl.textContent = msg || '';
+    cam.statusEls.forEach(d => d.dataset.state = state);
+  }
+
+  function createImgCam(cam) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    img.addEventListener('load', () => setState(cam, 'ok'));
+    img.addEventListener('error', () => setState(cam, 'err', '訊號中斷，重新連線中…'));
+    cam.el.prepend(img);
+
+    const reload = () => { img.src = withTimestamp(cam.url); };
+    reload();
+    const timer = setInterval(reload, IMG_REFRESH_MS);
+
+    cam.destroy = () => {
+      clearInterval(timer);
+      img.removeAttribute('src');
+      img.remove();
+    };
+  }
+
+  function createHlsCam(cam) {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('muted', '');
+    cam.el.prepend(video);
+
+    let hls = null;
+    let retryTimer = null;
+    let lastTime = -1;
+    let lastProgress = Date.now();
+
+    const play = () => video.play().catch(() => {});
+
+    video.addEventListener('playing', () => setState(cam, 'ok'));
+    video.addEventListener('timeupdate', () => {
+      if (video.currentTime !== lastTime) {
+        lastTime = video.currentTime;
+        lastProgress = Date.now();
+      }
+    });
+
+    function start() {
+      clearTimeout(retryTimer);
+      lastProgress = Date.now();
+      setState(cam, 'wait', '連線中…');
+
+      if (window.Hls && Hls.isSupported()) {
+        hls = new Hls({ lowLatencyMode: false, backBufferLength: 30, liveDurationInfinity: true });
+        hls.on(Hls.Events.MANIFEST_PARSED, play);
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (!data.fatal) return;
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            restart(5000);
+          }
+        });
+        hls.loadSource(cam.url);
+        hls.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari / iOS 原生支援 HLS
+        video.src = cam.url;
+        video.onerror = () => restart(5000);
+        play();
+      } else {
+        setState(cam, 'err', '此瀏覽器不支援 HLS');
+      }
+    }
+
+    function stop() {
+      if (hls) { hls.destroy(); hls = null; }
+      video.onerror = null;
+      video.removeAttribute('src');
+      video.load();
+    }
+
+    function restart(delay) {
+      stop();
+      setState(cam, 'err', '訊號中斷，重新連線中…');
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(start, delay);
+    }
+
+    // 看門狗：畫面卡住太久就重建
+    const watchdog = setInterval(() => {
+      if (document.hidden) { lastProgress = Date.now(); return; }
+      if (video.paused && cam.el.dataset.state === 'ok') play();
+      if (Date.now() - lastProgress > HLS_STALL_MS) restart(0);
+    }, 5000);
+
+    start();
+
+    cam.destroy = () => {
+      clearInterval(watchdog);
+      clearTimeout(retryTimer);
+      stop();
+      video.remove();
+    };
+  }
+
+  function buildCams(list) {
+    cams.forEach(c => c.destroy && c.destroy());
+    stage.innerHTML = '';
+
+    cams = list.slice(0, MAX_CAMS).map(item => {
+      const el = document.createElement('div');
+      el.className = 'cell';
+      const msgEl = document.createElement('div');
+      msgEl.className = 'msg';
+      el.appendChild(msgEl);
+      stage.appendChild(el);
+
+      const cam = { name: String(item.name ?? ''), url: String(item.url ?? ''), el, msgEl, statusEls: [] };
+      setState(cam, 'wait', '連線中…');
+      isHls(cam.url) ? createHlsCam(cam) : createImgCam(cam);
+      return cam;
+    });
+
+    layout();
+  }
+
+  /* ---------------- 排版 ---------------- */
+
+  // 依螢幕比例找出能讓每個畫面最大的列數
+  function bestRows(n, W, H, barH) {
+    let best = 1, bestArea = -1;
+    for (let r = 1; r <= n; r++) {
+      const c = Math.ceil(n / r);
+      if (Math.ceil(n / c) < r) continue;          // 會有空列，略過
+      const cw = W / c;
+      const ch = H / r - barH;
+      if (ch <= 0) continue;
+      const w = Math.min(cw, ch * CONTENT_ASPECT);
+      const area = w * (w / CONTENT_ASPECT);
+      if (area > bestArea + 1) { bestArea = area; best = r; }
+    }
+    return best;
+  }
+
+  function layout() {
+    stage.querySelectorAll('.bar').forEach(b => b.remove());
+    cams.forEach(c => c.statusEls = []);
+
+    const n = cams.length;
+    if (!n) return;
+
+    const W = stage.clientWidth;
+    const H = stage.clientHeight;
+    const barH = Math.round(Math.max(22, Math.min(34, Math.min(W, H) * 0.045)));
+    document.documentElement.style.setProperty('--bar-h', barH + 'px');
+
+    const rows = bestRows(n, W, H, barH);
+    const base = Math.floor(n / rows);
+    const extra = n % rows;
+    const rowH = H / rows;
+    const maxCols = Math.ceil(n / rows);
+    shortClock = (W / maxCols) < 300;
+
+    let idx = 0;
+    for (let r = 0; r < rows; r++) {
+      const count = base + (r < extra ? 1 : 0);
+      const rowCams = cams.slice(idx, idx + count);
+      idx += count;
+
+      // 上半部的列把名稱放在上方，下半部放在下方（靠近螢幕邊緣）
+      const barOnTop = rows === 1 ? false : r < rows / 2;
+      const y0 = Math.round(r * rowH);
+      const y1 = Math.round((r + 1) * rowH);
+      const barY = barOnTop ? y0 : y1 - barH;
+      const camY = barOnTop ? y0 + barH : y0;
+      const camH = y1 - y0 - barH;
+
+      rowCams.forEach((cam, i) => {
+        const x0 = Math.round(i * W / count);
+        const x1 = Math.round((i + 1) * W / count);
+        Object.assign(cam.el.style, {
+          left: x0 + 'px', top: camY + 'px',
+          width: (x1 - x0) + 'px', height: camH + 'px',
+        });
+      });
+
+      // 標題列：名稱與名稱之間放現在時間
+      const bar = document.createElement('div');
+      bar.className = 'bar ' + (barOnTop ? 'top' : 'bottom');
+      Object.assign(bar.style, { left: '0px', top: barY + 'px', width: W + 'px' });
+
+      rowCams.forEach((cam, i) => {
+        if (i > 0) bar.appendChild(makeClock());
+        const name = document.createElement('div');
+        name.className = 'name';
+        const dot = document.createElement('i');
+        dot.className = 'dot';
+        dot.dataset.state = cam.el.dataset.state;
+        const label = document.createElement('span');
+        label.textContent = cam.name;
+        name.append(dot, label);
+        cam.statusEls.push(dot);
+        bar.appendChild(name);
+      });
+      if (rowCams.length === 1) bar.appendChild(makeClock());
+
+      stage.appendChild(bar);
+    }
+  }
+
+  function makeClock() {
+    const t = document.createElement('time');
+    t.className = 'clock';
+    t.textContent = clockText();
+    return t;
+  }
+
+  function tickClock() {
+    const text = clockText();
+    stage.querySelectorAll('.clock').forEach(el => el.textContent = text);
+  }
+
+  /* ---------------- 設定檔 ---------------- */
+
+  async function loadConfig(initial) {
+    try {
+      const res = await fetch(CONFIG_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if (text === configText) return;
+
+      const list = JSON.parse(text);
+      if (!Array.isArray(list)) throw new Error('camera.json 必須是陣列');
+      configText = text;
+      const valid = list.filter(c => c && c.url);
+      showNotice(valid.length ? '' : 'camera.json 中沒有任何監視器');
+      buildCams(valid);
+    } catch (err) {
+      console.error('讀取 camera.json 失敗', err);
+      if (initial) showNotice('無法讀取 camera.json：' + err.message);
+    }
+  }
+
+  /* ---------------- 啟動 ---------------- */
+
+  let resizeRaf = 0;
+  const onResize = () => {
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(layout);
+  };
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
+
+  // 雙擊切換全螢幕
+  document.addEventListener('dblclick', () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  });
+
+  // 盡量保持螢幕常亮
+  async function keepAwake() {
+    try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (_) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
+  keepAwake();
+
+  setInterval(tickClock, 1000);
+  setInterval(() => loadConfig(false), CONFIG_POLL_MS);
+  loadConfig(true);
+})();
+</script>
+</body>
+</html>
