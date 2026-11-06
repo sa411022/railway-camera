@@ -114,10 +114,10 @@
 (() => {
   'use strict';
 
-  const CONFIG_URL = 'camera.json';
+  const CONFIG_URL = 'camera.jsonc';
   const MAX_CAMS = 6;
   const IMG_REFRESH_MS = 6000;      // <img> 串流每 6 秒重新連線
-  const CONFIG_POLL_MS = 6000;      // 每 6 秒重新讀取 camera.json
+  const CONFIG_POLL_MS = 6000;      // 每 6 秒重新讀取 camera.jsonc
   const HLS_STALL_MS = 20000;       // HLS 畫面停住超過 20 秒就重建
   const CONTENT_ASPECT = 4 / 3;     // 用來估算最佳排版的畫面比例
 
@@ -447,14 +447,14 @@
       if (text === configText) return;
 
       const list = parseLooseJson(text);
-      if (!Array.isArray(list)) throw new Error('camera.json 必須是陣列');
+      if (!Array.isArray(list)) throw new Error('camera.jsonc 必須是陣列');
       configText = text;
       const valid = list.filter(c => c && c.url);
-      showNotice(valid.length ? '' : 'camera.json 中沒有任何監視器');
+      showNotice(valid.length ? '' : 'camera.jsonc 中沒有任何監視器');
       buildCams(valid);
     } catch (err) {
-      console.error('讀取 camera.json 失敗', err);
-      if (initial) showNotice('無法讀取 camera.json：' + err.message);
+      console.error('讀取 camera.jsonc 失敗', err);
+      if (initial) showNotice('無法讀取 camera.jsonc：' + err.message);
     }
   }
 
