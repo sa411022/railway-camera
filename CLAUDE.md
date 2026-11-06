@@ -14,9 +14,9 @@
   1. 成功(追分)=彰化 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=269&t=`
   2. 大甲=台中港 — `https://cctv-ss03.thb.gov.tw/T1-156K+650?resolution=CIF_352X288&t=`
   3. 通霄=苑裡 — `https://cctv-ss04.thb.gov.tw/T1-139K+850?resolution=CIF_352X288&t=`
-  4. 談文=大山 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=582&t=`（第二支）
-  5. 竹南=談文(造橋) — `https://cctv-ss03.thb.gov.tw/T1F-003K+650?resolution=CIF_352X288&t=`
-  6. 埔心=平鎮 — `https://cctvtraffic.tycg.gov.tw/hls/nvr3/camera135/live.m3u8`
+  4. 談文=大山 — `https://cctv-ss08.thb.gov.tw/T61-097K+100?t=`（第一支）
+  5. 談文=大山 — `https://cctvc.freeway.gov.tw/abs2mjpg/bmjpg?camera=582&t=`（第二支）
+  6. 竹南=談文(造橋) — `https://cctv-ss03.thb.gov.tw/T1F-003K+650?resolution=CIF_352X288&t=`
   7. 桃園=內壢 — `https://cctvtraffic.tycg.gov.tw/hls/nvr2/camera067/live.m3u8`（HLS 那支）
   8. 南樹林=樹林 — `https://cctvatis5.ntpc.gov.tw/hls/C000217/live.m3u8`
 - 名稱找不到完全相符時（例如名稱前後顛倒），先找最可能的那支並在回覆中說明，不要自行改名。
