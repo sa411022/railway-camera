@@ -132,6 +132,14 @@
 
   const isHls = (url) => /\.m3u8(\?|#|$)/i.test(url);
 
+  // 播放方式：設定檔有寫 type（"hls" 或 "img"）就照它，沒寫就依網址自動判斷
+  function streamType(item, url) {
+    const t = String(item.type ?? '').trim().toLowerCase();
+    if (t === 'hls' || t === 'img') return t;
+    if (t) console.warn(`未知的 type "${item.type}"，改用自動判斷：`, item.name);
+    return isHls(url) ? 'hls' : 'img';
+  }
+
   // 設定/覆寫 t=timestamp 參數
   function withTimestamp(url) {
     const ts = Date.now();
@@ -263,19 +271,21 @@
     };
   }
 
-  // 依設定建立監視器；網址沒變的監視器會沿用，不中斷播放
+  // 依設定建立監視器；網址與 type 都沒變的監視器會沿用，不中斷播放
   function buildCams(list) {
     const pool = new Map();
     cams.forEach(c => {
-      if (!pool.has(c.url)) pool.set(c.url, []);
-      pool.get(c.url).push(c);
+      const key = c.type + ' ' + c.url;
+      if (!pool.has(key)) pool.set(key, []);
+      pool.get(key).push(c);
     });
 
     cams = list.slice(0, MAX_CAMS).map(item => {
       const name = String(item.name ?? '');
       const url = String(item.url ?? '');
+      const type = streamType(item, url);
 
-      const reused = pool.get(url)?.shift();
+      const reused = pool.get(type + ' ' + url)?.shift();
       if (reused) {
         reused.name = name;
         return reused;
@@ -288,9 +298,9 @@
       el.appendChild(msgEl);
       stage.appendChild(el);
 
-      const cam = { name, url, el, msgEl, statusEls: [] };
+      const cam = { name, url, type, el, msgEl, statusEls: [] };
       setState(cam, 'wait', '連線中…');
-      isHls(url) ? createHlsCam(cam) : createImgCam(cam);
+      type === 'hls' ? createHlsCam(cam) : createImgCam(cam);
       return cam;
     });
 
