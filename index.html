@@ -401,6 +401,44 @@
 
   /* ---------------- 設定檔 ---------------- */
 
+  // 寬鬆解析：允許 // 與 /* */ 註解、結尾多餘的逗號、未加引號的 key、單引號字串
+  function parseLooseJson(text) {
+    let out = '';
+    let i = 0;
+    const n = text.length;
+    while (i < n) {
+      const c = text[i];
+      if (c === '"' || c === "'") {                       // 字串，一律轉成雙引號
+        let str = '';
+        i++;
+        while (i < n && text[i] !== c) {
+          if (text[i] === '\\') { str += text[i] + text[i + 1]; i += 2; continue; }
+          str += (text[i] === '"') ? '\\"' : text[i];
+          i++;
+        }
+        i++;
+        out += '"' + str + '"';
+      } else if (c === '/' && text[i + 1] === '/') {      // 行註解
+        while (i < n && text[i] !== '\n') i++;
+      } else if (c === '/' && text[i + 1] === '*') {      // 區塊註解
+        const end = text.indexOf('*/', i + 2);
+        i = end < 0 ? n : end + 2;
+      } else if (/[A-Za-z_$]/.test(c)) {                   // 未加引號的 key
+        let id = '';
+        while (i < n && /[\w$]/.test(text[i])) id += text[i++];
+        let j = i;
+        while (j < n && /\s/.test(text[j])) j++;
+        out += text[j] === ':' ? '"' + id + '"' : id;
+      } else {
+        out += c;
+        i++;
+      }
+    }
+    // 移除 ] 或 } 前多餘的逗號（此時字串外已無註解）
+    out = out.replace(/,(\s*[\]}])/g, '$1');
+    return JSON.parse(out);
+  }
+
   async function loadConfig(initial) {
     try {
       const res = await fetch(CONFIG_URL, { cache: 'no-store' });
@@ -408,7 +446,7 @@
       const text = await res.text();
       if (text === configText) return;
 
-      const list = JSON.parse(text);
+      const list = parseLooseJson(text);
       if (!Array.isArray(list)) throw new Error('camera.json 必須是陣列');
       configText = text;
       const valid = list.filter(c => c && c.url);
