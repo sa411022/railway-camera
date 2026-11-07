@@ -40,6 +40,7 @@
   // { "name": "長庚醫院=林口", "url": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14081", "type": "img" },
    { "name": "南樹林=樹林", "url": "https://cctvatis5.ntpc.gov.tw/hls/C000217/live.m3u8", "type": "hls" },
    { "name": "汐科=南港", "url": "https://cctvatis2.ntpc.gov.tw/hls/C000277/live.m3u8", "type": "hls" },
+  // { "name": "暖暖=四腳亭", "url": "https://cctv-ss07.thb.gov.tw/T62-11K+600", "type": "img" },
   // { "name": "福隆=貢寮", "url": "https://cctv-ss01.thb.gov.tw/T2-100K+420", "type": "img" },
   // { "name": "石城=大里", "url": "https://cctv-ss01.thb.gov.tw/T2-118K+300", "type": "img" },
   // { "name": "龜山=大溪", "url": "https://cctv-ss01.thb.gov.tw/T2-124K+000", "type": "img" },
