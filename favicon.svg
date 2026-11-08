@@ -1,14 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#F0EEE6"/>
-  <!-- 車身 -->
-  <rect x="14" y="8" width="36" height="38" rx="9" fill="#D97757"/>
-  <!-- 車窗 -->
-  <rect x="19" y="14" width="26" height="13" rx="3" fill="#141413"/>
-  <!-- 頭燈 -->
-  <circle cx="22" cy="37" r="3.5" fill="#FAF9F5"/>
-  <circle cx="42" cy="37" r="3.5" fill="#FAF9F5"/>
   <!-- 車輪支架 -->
-  <path d="M22 46 L15 56 M42 46 L49 56" stroke="#D97757" stroke-width="4" stroke-linecap="round"/>
+  <path d="M18 46 L8 60 M46 46 L56 60" stroke="#D97757" stroke-width="5" stroke-linecap="round"/>
+  <!-- 車身 -->
+  <rect x="6" y="1" width="52" height="47" rx="12" fill="#D97757"/>
+  <!-- 車窗 -->
+  <rect x="13" y="8" width="38" height="17" rx="4" fill="#141413"/>
+  <!-- 頭燈 -->
+  <circle cx="17" cy="37" r="5" fill="#FAF9F5"/>
+  <circle cx="47" cy="37" r="5" fill="#FAF9F5"/>
   <!-- 軌道 -->
-  <path d="M10 56 H54" stroke="#141413" stroke-width="3" stroke-linecap="round"/>
+  <path d="M2 61 H62" stroke="#141413" stroke-width="4" stroke-linecap="round"/>
 </svg>
