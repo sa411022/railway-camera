@@ -26,6 +26,7 @@
 
 - `index.html` — 整個網頁（純 HTML + JavaScript，不需建置）。從 jsdelivr 載入 dayjs 與 hls.js。
 - `camera.jsonc` — 監視器設定檔，使用者隨時會修改。
+- `favicon.svg` — 網頁 favicon（火車圖示）。
 - `.github/workflows/pages.yml` — GitHub Pages 部署（Source 需設為 GitHub Actions）。
 - `CNAME` — 自訂網域；`.nojekyll` — 跳過 Jekyll。
 
